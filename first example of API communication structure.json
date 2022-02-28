@@ -1,0 +1,54 @@
+{
+    "user" : {
+        "email" : "teste@localhost.com",
+        "jwt" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZXhwIjoxNjQzNzY5MjY3fQ.wb7ylOSHM_t1k-Ut29JXRkPWREuYWSIcVI9xuEMcGBk"
+    },
+    "anonimize" : {
+        "database" : {
+            "type": "PostgreSQL",
+            "host": "localhost",
+            "port": 5432,
+            "user": "@admin",
+            "password": "password",
+            "ssh": "wefwenifoeinfkenrIOQWFWaklfjmkawJDWFJWOJDFAJFawflçqwçe9hwehr",
+            "schemas" : {
+                "admin" : {
+                    "tables" : {
+                        "managers" : {
+                            "columns" : {
+                                "name": "varchar",
+                                "address": "varchar",
+                                "salary" : "numeric"
+                            }
+                        },
+                        "contributors": {
+                            "columns" : {
+                                "name": "varchar",
+                                "address": "varchar",
+                                "salary" : "numeric",
+                                "cpf" : "varchar"
+                            }
+                        }
+                    }
+                },
+                "public" : {
+                    "tables" : {
+                        "providers" : {
+                            "columns" : {
+                                "value" : "numeric"
+                            }
+                        },
+                        "clients": {
+                            "columns" : {
+                                "name": "varchar",
+                                "address": "varchar",
+                                "value" : "numeric",
+                                "cnpj" : "varchar"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
