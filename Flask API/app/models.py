@@ -9,22 +9,24 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(86), nullable=False)
     email = db.Column(db.String(84), nullable=False, unique=True)
     password = db.Column(db.String(128), nullable=False)
+    is_admin = db.Column(db.Integer, nullable=False, server_default='0')
 
-    def __init__(self, name, email, password):
+    def __init__(self, name, email, password, is_admin):
         self.name = name
         self.email = email
         self.password = generate_password_hash(password)
+        self.is_admin = is_admin
 
     def verify_password(self, pwd):
         return check_password_hash(self.password, pwd)
 
     def __repr__(self):
-        return f"<User : {self.username}>"
+        return f"<User : {self.name}>"
 
 
 class UserSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'name', 'email', 'password')
+        fields = ('id', 'name', 'email', 'password', 'is_admin')
 
 
 user_share_schema = UserSchema()
