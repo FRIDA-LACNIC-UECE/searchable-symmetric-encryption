@@ -2,6 +2,7 @@ import pandas as pd
 from Crypto.Cipher import AES
 from Crypto.Hash import MD5
 import sqlite3
+import time
 
 
 def build_trapdoor(MK, keyword):
@@ -17,6 +18,7 @@ def build_codeword(ID, trapdoor):
     return ECB_cipher.encrypt(ID_index.digest()).hex()
 
 def search_index(index_table_name, trapdoor, cursor, columns_list):
+    start_time = time.time()
     search_result = []
     #data_index = pd.read_csv(document)
     #data_index = data_index.values
@@ -37,7 +39,9 @@ def search_index(index_table_name, trapdoor, cursor, columns_list):
         if build_codeword(row, trapdoor) in data_index[row]:
             search_result.append(row)
 
-    # print time.time() - start_time
+    time_cost = time.time() - start_time
+    print(time_cost)
+    
     return search_result
 
 if __name__ == "__main__":
@@ -56,7 +60,7 @@ if __name__ == "__main__":
     trapdoor_file.close()
 
     database_name = "Encrypted_Database"
-    index_table_name = "users_index" #input("Please input the index file you want to search:  ")
+    index_table_name = "adult_data_index" #input("Please input the index file you want to search:  ")
     connection = sqlite3.connect(database_name)
     cursor = connection.cursor()
 

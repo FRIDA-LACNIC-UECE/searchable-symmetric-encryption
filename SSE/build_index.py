@@ -2,9 +2,10 @@ import pandas as pd
 from Crypto.Cipher import AES
 from Crypto.Hash import MD5
 from Crypto.Random import random
-#import time
+import time
 import numpy as np
 import sqlite3
+import hashlib
 
 
 def build_trapdoor(MK, keyword):
@@ -30,24 +31,33 @@ def build_index(MK, ID, record_columns_list):
     return secure_index
 
 def searchable_encryption(master_key, columns_list, table_name, cursor, connection_db):
-    #start_time = time.time()
+    start_time = time.time()
     index_header = []
     for i in range(1, len(columns_list) + 1):
         index_header.append("index_" + str(i))
 
+    #row_number = "0"
+    from_db = []
     document_index = []
+    #query = "SELECT * from " + table_name + " limit 1000 offset " + row_number
+    #cursor.execute(query)
+
+    #results = cursor.fetchall()
+
     query = "SELECT * from " + table_name
     cursor.execute(query)
 
-    results = cursor.fetchall()
+    size = 1000
+    results = cursor.fetchmany(size)
 
-    #print(results)
+    while results:
+        for result in results:
+            result = list(result)
+            from_db.append(result)
 
-    from_db = []
-    for result in results:
-        result = list(result)
-        from_db.append(result)
-
+        results = cursor.fetchmany(size)
+        #print(results)
+        
     #print(from_db)
 
     raw_data = pd.DataFrame(from_db, columns=columns_list)
@@ -55,6 +65,8 @@ def searchable_encryption(master_key, columns_list, table_name, cursor, connecti
     raw_data = raw_data.values
 
     column_number = [i for i in range(0, len(features)) if features[i] in columns_list]
+
+    include_hash_column(table_name, cursor, raw_data)
 
     for row in range(raw_data.shape[0]):
         record = raw_data[row]
@@ -66,8 +78,29 @@ def searchable_encryption(master_key, columns_list, table_name, cursor, connecti
     new_file_name = table_name + "_index"
     document_index_dataframe.to_sql(new_file_name, connection_db, if_exists='replace', index=False)
 
-    #time_cost = time.time() - start_time
-    #print(time_cost)
+    time_cost = time.time() - start_time
+    print(time_cost)
+
+def include_hash_column(table_name, cursor, raw_data):
+    try:
+        query = "ALTER TABLE " + table_name + " ADD line_hash TEXT"
+        cursor.execute(query)
+    except:
+        pass
+
+    id = 1
+
+    for row in range(raw_data.shape[0]):
+        record = raw_data[row]
+        record = record.copy(order='C')
+        hashed_line = hashlib.sha256(record).hexdigest()
+
+        h_query = "UPDATE " + table_name + " SET line_hash = \"%s\" WHERE id = \"%d\"" % (str(hashed_line), id)
+        id = id + 1
+        #print(h_query)
+        cursor.execute(h_query)
+        #print(id)
+
 
 if __name__ == "__main__":
 
@@ -75,7 +108,7 @@ if __name__ == "__main__":
     connection = sqlite3.connect(document_name)
     cursor = connection.cursor()
 
-    table_name = "users" #name of the table in database to be encrypted
+    table_name = "adult_data" #name of the table in database to be encrypted
 
     master_key_file_name = "masterkey" #password autentication
     master_key = open(master_key_file_name).read()
@@ -92,14 +125,16 @@ if __name__ == "__main__":
         columns_list.append(column[0])
 
     connection_db = sqlite3.connect('Encrypted_Database')
-    cursor_db = connection_db.cursor()
+    #cursor_db = connection_db.cursor()
 
     #print(columns_list)
 
     searchable_encryption(master_key, columns_list, table_name, cursor, connection_db)
 
+    connection.commit()
     connection_db.commit()
+
     cursor.close()
-    cursor_db.close()
+    #cursor_db.close()
 
     print("Finished")
