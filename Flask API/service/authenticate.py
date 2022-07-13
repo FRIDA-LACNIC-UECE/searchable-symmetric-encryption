@@ -5,7 +5,7 @@ import jwt
 
 from flask import request, jsonify, current_app
 
-from app.models import User
+from model.models import User
 
 
 def jwt_required(f):
