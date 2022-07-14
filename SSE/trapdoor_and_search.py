@@ -46,6 +46,8 @@ def search_index(index_table_name, trapdoor, cursor, columns_list):
 
 if __name__ == "__main__":
 
+    table_name = input("Please input the table you want to search into: ")
+
     keyword = input("Please input the keyword you want to search:  ")
 
     master_key_file_name = "masterkey" #input("Please input the file stored the master key:  ")
@@ -60,7 +62,7 @@ if __name__ == "__main__":
     trapdoor_file.close()
 
     database_name = "Encrypted_Database"
-    index_table_name = "adult_data_index" #input("Please input the index file you want to search:  ")
+    index_table_name = table_name + "_index" #input("Please input the index file you want to search:  ")
     connection = sqlite3.connect(database_name)
     cursor = connection.cursor()
 
