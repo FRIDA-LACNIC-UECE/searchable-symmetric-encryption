@@ -100,6 +100,7 @@ def include_hash_column(tn, cursor, raw_data):
 
         h_query = "UPDATE " + tn + " SET line_hash = \"%s\" WHERE id = \"%d\"" % (str(hashed_line), id)
         id = id + 1
+
         #print(h_query)
         cursor.execute(h_query)
         #print(id)

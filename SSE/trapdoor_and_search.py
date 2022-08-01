@@ -61,7 +61,7 @@ if __name__ == "__main__":
     trapdoor_file.write(trapdoor_of_keyword)
     trapdoor_file.close()
 
-    database_name = "Encrypted_Database"
+    database_name = "EncryptedDB"
     index_table_name = table_name + "_index" #input("Please input the index file you want to search:  ")
     connection = sqlite3.connect(database_name)
     cursor = connection.cursor()
@@ -77,11 +77,10 @@ if __name__ == "__main__":
         keyword_trapdoor = f.read()
     search_result = search_index(index_table_name, keyword_trapdoor, cursor, columns_list)
 
-    or_database_name = "Database.db"
+    or_database_name = "NewDatabase"
     or_connection = sqlite3.connect(or_database_name)
     or_cursor = or_connection.cursor()
     
-    hash_value = input("Please input the hash value you want to search: ")
     cursor.close()
     
     print("The identifiers of files that contain the keyword are: \n", search_result)

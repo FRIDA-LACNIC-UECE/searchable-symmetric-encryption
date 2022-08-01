@@ -16,3 +16,5 @@ if __name__ == "__main__":
     cursor = connection.cursor()
 
     search_hash_row(table_name, cursor, hash_value)
+
+    cursor.close()
