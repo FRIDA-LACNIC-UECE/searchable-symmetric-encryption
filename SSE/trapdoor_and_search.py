@@ -8,7 +8,7 @@ import time
 def build_trapdoor(MK, keyword):
     keyword_index = MD5.new()
     keyword_index.update(str(keyword).encode())
-    ECB_cipher = AES.new(MK, AES.MODE_ECB)
+    ECB_cipher = AES.new(MK.encode("utf8"), AES.MODE_ECB)
     return ECB_cipher.encrypt(keyword_index.digest())
 
 def build_codeword(ID, trapdoor):
@@ -77,6 +77,11 @@ if __name__ == "__main__":
         keyword_trapdoor = f.read()
     search_result = search_index(index_table_name, keyword_trapdoor, cursor, columns_list)
 
+    or_database_name = "Database.db"
+    or_connection = sqlite3.connect(or_database_name)
+    or_cursor = or_connection.cursor()
+    
+    hash_value = input("Please input the hash value you want to search: ")
     cursor.close()
     
     print("The identifiers of files that contain the keyword are: \n", search_result)

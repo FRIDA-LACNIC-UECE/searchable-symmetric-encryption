@@ -7,13 +7,11 @@ import numpy as np
 import sqlite3
 import hashlib
 
-from sqlalchemy import table
-
 
 def build_trapdoor(MK, keyword):
     keyword_index = MD5.new()
     keyword_index.update(str(keyword).encode())
-    ECB_cipher = AES.new(MK, AES.MODE_ECB)
+    ECB_cipher = AES.new(MK.encode("utf8"), AES.MODE_ECB)
     return ECB_cipher.encrypt(keyword_index.digest())
 
 
@@ -86,11 +84,11 @@ def include_hash_column(tn, cursor, raw_data):
     except:
         pass
 
-    try:
-        query = "ALTER TABLE " + tn + " ADD id SERIAL"
-        cursor.execute(query)
-    except:
-        pass
+    #try:
+    #    query = "ALTER TABLE " + tn + " ADD id INTEGER PRIMARY KEY AUTOINCREMENT"
+    #    cursor.execute(query)
+    #except:
+    #    pass
 
     id = 1
 
@@ -98,6 +96,7 @@ def include_hash_column(tn, cursor, raw_data):
         record = raw_data[row]
         record = record.copy(order='C')
         hashed_line = hashlib.sha256(record).hexdigest()
+        #print(hashed_line)
 
         h_query = "UPDATE " + tn + " SET line_hash = \"%s\" WHERE id = \"%d\"" % (str(hashed_line), id)
         id = id + 1
@@ -105,16 +104,15 @@ def include_hash_column(tn, cursor, raw_data):
         cursor.execute(h_query)
         #print(id)
 
-
 if __name__ == "__main__":
 
-    document_name = "Database.db" #name of the database to be encrypted
+    document_name = "NewDatabase" #name of the database to be encrypted
     connection = sqlite3.connect(document_name)
     cursor = connection.cursor()
 
     table_names = [] #name of the table in database to be encrypted
 
-    for i in range (1, 54):
+    for i in range (1, 6):
         tn = "Tabela" + str(i)
         table_names.append(tn)
         #print(tn)
@@ -139,7 +137,7 @@ if __name__ == "__main__":
         for column in data.description:
             columns_list.append(column[0])
 
-        connection_db = sqlite3.connect('Encrypted_Database')
+        connection_db = sqlite3.connect('EncryptedDB')
         #cursor_db = connection_db.cursor()
         #print(columns_list)
         searchable_encryption(master_key, columns_list, tn, cursor, connection_db)
