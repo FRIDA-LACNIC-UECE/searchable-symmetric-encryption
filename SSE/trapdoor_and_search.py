@@ -25,22 +25,28 @@ def search_index(index_table_name, trapdoor, cursor, columns_list):
     # start_time = time.time()
     query = "SELECT * from " + index_table_name
     cursor.execute(query)
-    results = cursor.fetchall()
+
+    size = 1000
+    results = cursor.fetchmany(size)
+    #results = cursor.fetchall()
 
     from_db = []
-    for result in results:
-        result = list(result)
-        from_db.append(result)
+    while results:
+        for result in results:
+            result = list(result)
+            from_db.append(result)
+        
+        results = cursor.fetchmany(size)
 
     data_index = pd.DataFrame(from_db, columns=columns_list)
     data_index = data_index.values
 
     for row in range(data_index.shape[0]):
         if build_codeword(row, trapdoor) in data_index[row]:
-            search_result.append(row)
+            search_result.append(row+1)
 
-    time_cost = time.time() - start_time
-    print(time_cost)
+    #time_cost = time.time() - start_time
+    #print(time_cost)
     
     return search_result
 
