@@ -11,3 +11,9 @@ Technologies Used
 =================
 
 - [Python](python.org) - Open source programming language.
+
+Installation
+============
+
+To run the SSE application you must add the dependecies stated in requirements.txt file by using:
+pip install -r requirements.txt
