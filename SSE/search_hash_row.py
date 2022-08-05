@@ -1,20 +1,17 @@
-import sqlite3
+from sqlalchemy import create_engine
 
-def search_hash_row (tn, cursor, hash):
-    query = "SELECT * from " + tn + " WHERE line_hash = \"%s\"" % (hash)
-    cursor.execute(query)
-    
-    results = cursor.fetchall()
-    print(results)
+def search_hash_row (tn, engine, hash):
+    with engine.connect() as connection:
+        query = "SELECT * from " + tn + " WHERE line_hash = \"%s\"" % (hash)
+        result = connection.execute(query)
+        for row in result:
+            print(row)
 
 if __name__ == "__main__":
     table_name = input("Please input the table you want to search into: ")
     hash_value = input("Input the desired row hash value: ")
 
     database_name = "NewDatabase" 
-    connection = sqlite3.connect(database_name)
-    cursor = connection.cursor()
+    engine = create_engine(f"sqlite:///{database_name}")
 
-    search_hash_row(table_name, cursor, hash_value)
-
-    cursor.close()
+    search_hash_row(table_name, engine, hash_value)
