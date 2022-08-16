@@ -1,17 +1,16 @@
-from itertools import count
 import pandas as pd
 from Crypto.Cipher import AES
 from Crypto.Hash import MD5
 from Crypto.Random import random
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 import time
 import numpy as np
 import sqlite3
 import hashlib
-import time 
-
-
+import time
+import models_original_db
+from marshmallow import Schema, fields
 
 def build_trapdoor(MK, keyword):
     keyword_index = MD5.new()
@@ -19,13 +18,11 @@ def build_trapdoor(MK, keyword):
     ECB_cipher = AES.new(MK.encode("utf8"), AES.MODE_ECB)
     return ECB_cipher.encrypt(keyword_index.digest())
 
-
 def build_codeword(ID, trapdoor):
     ID_index = MD5.new()
     ID_index.update(str(ID).encode())
     ECB_cipher = AES.new(trapdoor, AES.MODE_ECB)
     return ECB_cipher.encrypt(ID_index.digest()).hex()
-
 
 def build_index(MK, ID, record_columns_list):
     secure_index = [0] * len(record_columns_list)
@@ -35,34 +32,30 @@ def build_index(MK, ID, record_columns_list):
     random.shuffle(secure_index)
     return secure_index
 
-def searchable_encryption(master_key, columns_list, tn, connection_db, connection_encrypted_db):
+def searchable_encryption(master_key, columns_list, tn, classes_db, schemas_db, engine_db, connection_encrypted_db):
     index_header = []
     for i in range(1, len(columns_list) + 1):
         index_header.append("index_" + str(i))
 
-    #row_number = "0"
     from_db = []
     document_index = []
-    #query = "SELECT * from " + table_name + " limit 1000 offset " + row_number
-    #cursor.execute(query)
 
-    #results = cursor.fetchall()
-
-    query = "SELECT * from " + tn
-    result_proxy = connection_db.execute(query)
+    session_db = Session(engine_db) # Section to run sql operation
 
     size = 1000
-    results = result_proxy.fetchmany(size)
+    statement = select(classes_db[f"{tn}"])
+    results_proxy = session_db.execute(statement).scalars() # Proxy to get data on batch
+    results = results_proxy.fetchmany(size) # Getting data
 
     while results:
+        #print(results[0].to_list())
         for result in results:
-            result = list(result)
-            from_db.append(result)
+            from_db.append(list(schemas_db[f"{tn}"].dump(result).values()))
 
-        results = result_proxy.fetchmany(size)
-        #print(results)
+        results = results_proxy.fetchmany(size) # Getting data
     
     #print(from_db)
+    session_db.close()
 
     raw_data = pd.DataFrame(from_db, columns=columns_list)
     features = list(raw_data)
@@ -70,7 +63,7 @@ def searchable_encryption(master_key, columns_list, tn, connection_db, connectio
 
     column_number = [i for i in range(0, len(features)) if features[i] in columns_list]
     
-    include_hash_column(tn, connection_db, raw_data)
+    include_hash_column(tn, classes_db, engine_db, raw_data)
 
     for row in range(raw_data.shape[0]):
         record = raw_data[row]
@@ -82,55 +75,47 @@ def searchable_encryption(master_key, columns_list, tn, connection_db, connectio
     new_file_name = tn + "_index"
     document_index_dataframe.to_sql(new_file_name, connection_encrypted_db, if_exists='replace', index=False)
 
-def include_hash_column(tn, connection_db, raw_data):
-    try:
-        query = "ALTER TABLE " + tn + " ADD line_hash TEXT"
-        connection_db.execute(query)
-    except:
-        pass
-
-    #try:
-    #    query = "ALTER TABLE " + tn + " ADD id INTEGER PRIMARY KEY AUTOINCREMENT"
-    #    cursor.execute(query)
-    #except:
-    #    pass
-
+def include_hash_column(tn, classes_db, engine_db, raw_data):
     id = 1
-    count = 0
-    
+
+    session_db = Session(engine_db) # Section to run sql operation
+
     for row in range(raw_data.shape[0]):
-        #i1 = time.time()
         record = raw_data[row]
         record = record.copy(order='C')
         hashed_line = hashlib.sha256(record).hexdigest()
         #print(hashed_line)
 
-        h_query = "UPDATE " + tn + " SET line_hash = \"%s\" WHERE id = \"%d\"" % (str(hashed_line), id)
-        id = id + 1
-        #f1 = time.time() - i1
-        #print(h_query)
-        #i2 = time.time()
-        connection_db.execute(h_query)
-        #f2 = time.time() - i2
-        #print(f"f2 = {f2}")
-        #print(id)
-        count += 1
-        print(count)
+        #h_query = "UPDATE " + tn + " SET line_hash = \"%s\" WHERE id = \"%d\"" % (str(hashed_line), id)
+        (
+            session_db.query(classes_db[f"{tn}"])
+            .filter(classes_db[f"{tn}"].id == id)
+            .update({'line_hash':str(hashed_line)})
+        )
 
+        id = id + 1
+
+        print(row)
+    
+    session_db.commit()
+    session_db.close()
+
+    
 if __name__ == "__main__":
 
     document_name = "NewDatabase" #name of the database to be encrypted
     engine_db = create_engine(f"sqlite:///{document_name}")
-    connection_db = engine_db.connect()
-    connection_db.execution_options(isolation_level="AUTOCOMMIT")
-    connection_db.execution_options(isolation_level=connection_db.default_isolation_level)
-
+    
     table_names = [] #name of the table in database to be encrypted
-
+    classes_db = {} # classes to model database
+    schemas_db = {} # schemas of models_original_db
+    
     for i in range (1, 6):
         tn = "Tabela" + str(i)
         table_names.append(tn)
-        #print(tn)
+        classes_db[f"{tn}"] = eval(f"models_original_db.{tn}")
+        schemas_db[f"{tn}"] = eval(f"models_original_db.Schema{tn}()")
+        #print(tn) 
 
     master_key_file_name = "masterkey" #password autentication
     master_key = open(master_key_file_name).read()
@@ -144,24 +129,28 @@ if __name__ == "__main__":
     total_time = 0
 
     for tn in table_names:
+        try:
+            query = "ALTER TABLE " + tn + " ADD line_hash TEXT"
+            engine_db.execute(query)
+        except:
+            pass
+
         start_time = time.time()
         columns_list = []
-        data = connection_db.execute("SELECT * from " + tn + " limit 1")
-        data_description = list(data.keys())
+        data_description = classes_db[f"{tn}"].__table__.columns.keys()
         #print(tn)
 
         for column in data_description:
             columns_list.append(column)
+        #print(columns_list)
 
         encrypted_db_name = "EncryptedDB"
         connection_encrypted_db = create_engine(f"sqlite:///{encrypted_db_name}").connect()
-        #cursor_db = connection_db.cursor()
-        #print(columns_list)
-        searchable_encryption(master_key, columns_list, tn, connection_db, connection_encrypted_db)
+
+        searchable_encryption(master_key, columns_list, tn, classes_db, schemas_db, engine_db, connection_encrypted_db)
 
         time_cost = time.time() - start_time
         total_time += time_cost
 
-    #cursor_db.close()
     print(total_time)
     print("Finished")
