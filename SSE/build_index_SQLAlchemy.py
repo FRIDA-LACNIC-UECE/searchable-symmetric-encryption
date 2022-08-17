@@ -95,7 +95,7 @@ def include_hash_column(tn, classes_db, engine_db, raw_data):
 
         id = id + 1
 
-        print(row)
+        #print(row)
     
     session_db.commit()
     session_db.close()
