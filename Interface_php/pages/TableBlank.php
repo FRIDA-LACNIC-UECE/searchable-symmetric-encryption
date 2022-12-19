@@ -1,3 +1,0 @@
-<?php require_once($_SERVER['DOCUMENT_ROOT']."/pages/Head.php");?>
-Em constru&ccedil;&atilde;o!!!!....
-<?php require_once($_SERVER['DOCUMENT_ROOT']."/pages/Foot.php");?>
